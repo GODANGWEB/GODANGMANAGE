@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Godang Furniture</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-4 md:p-6">
+        <div class="bg-white shadow-lg rounded-lg p-4 md:p-6 mb-6">
+            <h1 class="text-2xl md:text-3xl font-bold text-gray-800 mb-2">Manage Stock Furniture</h1>
+        </div>
+
+        <div class="mb-6 flex flex-col md:flex-row md:space-x-4 space-y-4 md:space-y-0">
+            <button onclick="showAddForm()" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded">
+                <i class="fas fa-plus mr-2"></i>เพิ่มสต็อกใหม่
+            </button>
+            <button onclick="showAllHistory()" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">
+                <i class="fas fa-history mr-2"></i>ประวัติทั้งหมด
+            </button>
+            <select id="modelFilter" class="border rounded py-2 px-4">
+                <option value="">เลือกรุ่น</option>
+            </select>
+            <select id="colorFilter" class="border rounded py-2 px-4">
+                <option value="">เลือกสี</option>
+            </select>
+            <select id="typeFilter" class="border rounded py-2 px-4">
+                <option value="">เลือกประเภท</option>
+            </select>
+        </div>
+
+        <div class="mb-4">
+            <input type="text" id="searchInput" placeholder="ค้นหา..." class="w-full border rounded py-2 px-4">
+        </div>
+
+        <div class="bg-white shadow-lg rounded-lg overflow-hidden">
+            <table class="w-full">
+                <thead>
+                    <tr class="bg-gray-200 text-gray-600 uppercase text-sm leading-normal">
+                        <th class="py-3 px-4 md:px-6">ชื่อ</th>
+                        <th class="py-3 px-4 md:px-6">สี</th>
+                        <th class="py-3 px-4 md:px-6">จำนวน</th>
+                        <th class="py-3 px-4 md:px-6">ประเภท</th>
+                        <th class="py-3 px-4 md:px-6">การจัดการ</th>
+                    </tr>
+                </thead>
+                <tbody id="stockTable"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Add Stock Form -->
+    <div id="addStockForm" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <h2 class="text-2xl font-bold mb-4 text-gray-800">เพิ่มสต็อกใหม่</h2>
+            <form id="addForm">
+                <div class="mb-4">
+                    <label for="model" class="block text-gray-700 text-sm font-bold mb-2">ชื่อ:</label>
+                    <input type="text" id="model" name="model" class="w-full px-3 py-2 border rounded-lg" required>
+                </div>
+                <div class="mb-4">
+                    <label for="color" class="block text-gray-700 text-sm font-bold mb-2">สี:</label>
+                    <input type="text" id="color" name="color" class="w-full px-3 py-2 border rounded-lg" required>
+                </div>
+                <div class="mb-4">
+                    <label for="addQuantity" class="block text-gray-700 text-sm font-bold mb-2">จำนวน:</label>
+                    <input type="number" id="addQuantity" name="addQuantity" class="w-full px-3 py-2 border rounded-lg" required>
+                </div>
+                <div class="mb-4">
+                    <label for="type" class="block text-gray-700 text-sm font-bold mb-2">ประเภท:</label>
+                    <input type="text" id="type" name="type" class="w-full px-3 py-2 border rounded-lg" required>
+                </div>
+                <div class="flex justify-end space-x-2">
+                    <button type="button" onclick="hideAddForm()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">ยกเลิก</button>
+                    <button type="submit" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded">เพิ่มสต็อก</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Send Stock Form -->
+    <div id="sendStockForm" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <h2 class="text-2xl font-bold mb-4 text-gray-800">ส่งของ</h2>
+            <form id="sendForm">
+                <input type="hidden" id="sendItemId">
+                <div class="mb-4">
+                    <label for="sendQuantity" class="block text-gray-700 text-sm font-bold mb-2">จำนวนที่ต้องการส่ง:</label>
+                    <input type="number" id="sendQuantity" name="sendQuantity" class="w-full px-3 py-2 border rounded-lg" required>
+                </div>
+                <div class="mb-4">
+                    <label for="sendDestination" class="block text-gray-700 text-sm font-bold mb-2">ส่งไปที่:</label>
+                    <input type="text" id="sendDestination" name="sendDestination" class="w-full px-3 py-2 border rounded-lg" required>
+                </div>
+                <div class="mb-4">
+                    <label for="sendRecipient" class="block text-gray-700 text-sm font-bold mb-2">ผู้รับ:</label>
+                    <input type="text" id="sendRecipient" name="sendRecipient" class="w-full px-3 py-2 border rounded-lg" required>
+                </div>
+                <div class="mb-4">
+                    <label for="sendPhone" class="block text-gray-700 text-sm font-bold mb-2">เบอร์โทรติดต่อ:</label>
+                    <input type="tel" id="sendPhone" name="sendPhone" class="w-full px-3 py-2 border rounded-lg" required>
+                </div>
+                <div class="mb-4">
+                    <label for="sendDetails" class="block text-gray-700 text-sm font-bold mb-2">รายละเอียดเพิ่มเติม:</label>
+                    <textarea id="sendDetails" name="sendDetails" class="w-full px-3 py-2 border rounded-lg" rows="3"></textarea>
+                </div>
+                <div class="flex justify-end space-x-2">
+                    <button type="button" onclick="hideSendForm()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">ยกเลิก</button>
+                    <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">ยืนยันการส่งของ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Stock Form -->
+    <div id="editStockForm" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <h2 class="text-2xl font-bold mb-4 text-gray-800">แก้ไขสต็อก</h2>
+            <form id="editForm">
+                <input type="hidden" id="editItemId">
+                <div class="mb-4">
+                    <label for="editModel" class="block text-gray-700 text-sm font-bold mb-2">ชื่อ:</label>
+                    <input type="text" id="editModel" name="editModel" class="w-full px-3 py-2 border rounded-lg" required>
+                </div>
+                <div class="mb-4">
+                    <label for="editColor" class="block text-gray-700 text-sm font-bold mb-2">สี:</label>
+                    <input type="text" id="editColor" name="editColor" class="w-full px-3 py-2 border rounded-lg" required>
+                </div>
+                <div class="mb-4">
+                    <label for="editQuantity" class="block text-gray-700 text-sm font-bold mb-2">จำนวน:</label>
+                    <input type="number" id="editQuantity" name="editQuantity" class="w-full px-3 py-2 border rounded-lg" required>
+                </div>
+                <div class="mb-4">
+                    <label for="editType" class="block text-gray-700 text-sm font-bold mb-2">ประเภท:</label>
+                    <input type="text" id="editType" name="editType" class="w-full px-3 py-2 border rounded-lg" required>
+                </div>
+                <div class="flex justify-end space-x-2">
+                    <button type="button" onclick="hideEditForm()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">ยกเลิก</button>
+                    <button type="submit" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded">ยืนยันการแก้ไข</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- All History Form -->
+    <div id="allHistoryForm" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
+        <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 shadow-lg rounded-md bg-white">
+            <h2 class="text-2xl font-bold mb-4 text-gray-800">ประวัติการส่งสินค้าทั้งหมด</h2>
+            <div class="mb-4 flex flex-col md:flex-row md:space-x-4 space-y-4 md:space-y-0">
+                <input type="text" id="historySearchInput" placeholder="ค้นหาในประวัติ..." class="border rounded py-2 px-4 flex-grow">
+                <select id="historyModelFilter" class="border rounded py-2 px-4">
+                    <option value="">เลือกรุ่น</option>
+                </select>
+                <select id="historyColorFilter" class="border rounded py-2 px-4">
+                    <option value="">เลือกสี</option>
+                </select>
+                <select id="historyTypeFilter" class="border rounded py-2 px-4">
+                    <option value="">เลือกประเภท</option>
+                </select>
+            </div>
+            <div id="allHistoryContent" class="space-y-4 max-h-96 overflow-y-auto"></div>
+            <div class="mt-4">
+                <button onclick="hideAllHistoryForm()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">ปิด</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
